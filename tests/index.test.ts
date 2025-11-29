@@ -3,16 +3,13 @@ const mockSet = jest.fn();
 mockLabels.mockReturnValue({ set: mockSet });
 
 jest.doMock('../src/metrics', () => ({
-  containerStatus: {
+  containerInfo: {
     labels: mockLabels,
   },
   containerUptime: {
     labels: mockLabels,
   },
   containerRestartCount: {
-    labels: mockLabels,
-  },
-  composeHealthStatus: {
     labels: mockLabels,
   },
 }));
@@ -28,11 +25,7 @@ describe('collectMetrics', () => {
   });
 
   it('should collect metrics from containers', async () => {
-    const mockContainers = [
-      {
-        Id: 'test-container-id',
-      },
-    ];
+    const mockContainers = [{ Id: 'test-container-id' }];
     const mockContainerInspect = {
       Name: '/test-container',
       State: {
@@ -57,13 +50,30 @@ describe('collectMetrics', () => {
 
     await collectMetrics();
 
-    expect(mockLabels).toHaveBeenCalledWith('test-container', 'running');
-    expect(mockLabels).toHaveBeenCalledWith('test-container');
-    expect(mockLabels).toHaveBeenCalledWith('test-container');
+    // Verify containerInfo metric
     expect(mockLabels).toHaveBeenCalledWith(
+      'test-container',
+      'running',
+      'healthy',
       'test-project',
       'test-service',
-      'healthy',
     );
+    expect(mockSet).toHaveBeenCalledWith(1);
+
+    // Verify containerUptime metric
+    expect(mockLabels).toHaveBeenCalledWith(
+      'test-container',
+      'test-project',
+      'test-service',
+    );
+    expect(mockSet).toHaveBeenCalledWith(expect.any(Number));
+    
+    // Verify containerRestartCount metric
+    expect(mockLabels).toHaveBeenCalledWith(
+      'test-container',
+      'test-project',
+      'test-service',
+    );
+    expect(mockSet).toHaveBeenCalledWith(3);
   });
 });
