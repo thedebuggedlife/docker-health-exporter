@@ -11,4 +11,3 @@ coverage
 jest.config.js
 .eslintrc.js
 .prettierrc.js
-tsconfig.json
