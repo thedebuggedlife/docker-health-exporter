@@ -6,6 +6,9 @@ jest.doMock('../src/metrics', () => ({
   containerInfo: {
     labels: mockLabels,
   },
+  containerHealth: {
+    labels: mockLabels,
+  },
   containerUptime: {
     labels: mockLabels,
   },
@@ -16,6 +19,7 @@ jest.doMock('../src/metrics', () => ({
 
 import { getContainers, docker } from '../src/docker';
 import { collectMetrics } from '../src/index';
+import { containerHealth } from '../src/metrics';
 
 jest.mock('../src/docker');
 
@@ -52,27 +56,30 @@ describe('collectMetrics', () => {
 
     // Verify containerInfo metric
     expect(mockLabels).toHaveBeenCalledWith(
+      'test-container-id',
       'test-container',
       'running',
-      'healthy',
       'test-project',
       'test-service',
     );
     expect(mockSet).toHaveBeenCalledWith(1);
 
+    // Verify containerHealth metric
+    expect(mockLabels).toHaveBeenCalledWith(
+      'test-container-id',
+      'healthy',
+    );
+    expect(mockSet).toHaveBeenCalledWith(1);
+
     // Verify containerUptime metric
     expect(mockLabels).toHaveBeenCalledWith(
-      'test-container',
-      'test-project',
-      'test-service',
+      'test-container-id',
     );
     expect(mockSet).toHaveBeenCalledWith(expect.any(Number));
     
     // Verify containerRestartCount metric
     expect(mockLabels).toHaveBeenCalledWith(
-      'test-container',
-      'test-project',
-      'test-service',
+      'test-container-id',
     );
     expect(mockSet).toHaveBeenCalledWith(3);
   });

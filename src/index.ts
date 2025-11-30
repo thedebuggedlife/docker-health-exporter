@@ -5,6 +5,7 @@ import {
   containerInfo,
   containerUptime,
   containerRestartCount,
+  containerHealth,
 } from './metrics';
 
 export const collectMetrics = async () => {
@@ -18,14 +19,17 @@ export const collectMetrics = async () => {
     const composeService = container.Config.Labels['com.docker.compose.service'] || '';
 
     const status = container.State.Status;
-    const health = container.State.Health?.Status || '';
+    containerInfo.labels(containerData.Id, name, status, composeProject, composeService).set(1);
 
-    containerInfo.labels(name, status, health, composeProject, composeService).set(1);
+    const health = container.State.Health?.Status;
+    if (health) {
+      containerHealth.labels(containerData.Id, health).set(1);
+    }
 
-    const uptime = status === 'running' ? new Date(container.State.StartedAt).getTime() / 1000 : 0;
-    containerUptime.labels(name, composeProject, composeService).set(uptime);
+    const uptime = status === 'running' ? new Date(container.State.StartedAt).getTime() : 0;
+    containerUptime.labels(containerData.Id).set(uptime);
 
-    containerRestartCount.labels(name, composeProject, composeService).set(container.RestartCount);
+    containerRestartCount.labels(containerData.Id).set(container.RestartCount);
   }
 };
 
