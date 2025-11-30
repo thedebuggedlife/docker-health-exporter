@@ -10,12 +10,12 @@ A Prometheus exporter that tracks the health of Docker containers.
 
 The exporter exposes the following metrics:
 
-| Metric                               | Description                               | Labels                        |
-| ------------------------------------ | ----------------------------------------- | ----------------------------- |
-| `docker_container_status`            | Status of the container                   | `name`, `status`              |
-| `docker_container_uptime_seconds`    | Uptime of the container in seconds        | `name`                        |
-| `docker_container_restart_count`     | Restart count of the container            | `name`                        |
-| `docker_compose_health_status`       | Health status of the compose service      | `project`, `service`, `status`|
+| Metric                                 | Description                                  | Labels                             |
+| -------------------------------------- | -------------------------------------------- | ---------------------------------- |
+| `docker_container_running`             | Whether a container is running (1) or not (0)| `id`, `name`, `project`, `service` |
+| `docker_container_healthy`             | Whether a container is healthy (1) or not (0)| `id`, `name`, `project`, `service` |
+| `docker_container_uptime_milliseconds` | Uptime of the container in milliseconds      | `id`, `name`, `project`, `service` |
+| `docker_container_restart_count`       | Restart count of the container               | `id`, `name`, `project`, `service` |
 
 ## Usage
 

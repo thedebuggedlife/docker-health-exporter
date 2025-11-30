@@ -2,10 +2,10 @@ import http from 'http';
 import client from 'prom-client';
 import { getContainers, docker } from './docker';
 import {
-  containerInfo,
+  containerRunning,
   containerUptime,
   containerRestartCount,
-  containerHealth,
+  containerHealthy,
 } from './metrics';
 
 export const collectMetrics = async () => {
@@ -13,23 +13,26 @@ export const collectMetrics = async () => {
 
   for (const containerData of containers) {
     const container = await docker.getContainer(containerData.Id).inspect();
-    const name = container.Name.substring(1);
-
-    const composeProject = container.Config.Labels['com.docker.compose.project'] || '';
-    const composeService = container.Config.Labels['com.docker.compose.service'] || '';
-
-    const status = container.State.Status;
-    containerInfo.labels(containerData.Id, name, status, composeProject, composeService).set(1);
-
-    const health = container.State.Health?.Status;
-    if (health) {
-      containerHealth.labels(containerData.Id, health).set(1);
+    const id = containerData.Id;
+    const labels = {
+      id,
+      name: container.Name.substring(1),
+      project: container.Config.Labels['com.docker.compose.project'] || '',
+      service: container.Config.Labels['com.docker.compose.service'] || '',
     }
 
-    const uptime = status === 'running' ? new Date(container.State.StartedAt).getTime() : 0;
-    containerUptime.labels(containerData.Id).set(uptime);
+    const running = container.State.Status === 'running';
+    containerRunning.set(labels, running ? 1 : 0);
 
-    containerRestartCount.labels(containerData.Id).set(container.RestartCount);
+    if (container.State.Health?.Status) {
+      const healthy = container.State.Health?.Status === 'healthy';
+      containerHealthy.set(labels, healthy ? 1 : 0);;  
+    }
+
+    const uptime = running ? new Date(container.State.StartedAt).getTime() : 0;
+    containerUptime.set(labels, uptime);
+
+    containerRestartCount.set(labels, container.RestartCount);
   }
 };
 
