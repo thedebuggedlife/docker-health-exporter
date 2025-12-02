@@ -10,12 +10,15 @@ A Prometheus exporter that tracks the health of Docker containers.
 
 The exporter exposes the following metrics:
 
-| Metric                                 | Description                                  | Labels                             |
-| -------------------------------------- | -------------------------------------------- | ---------------------------------- |
-| `docker_container_running`             | Whether a container is running (1) or not (0)| `id`, `name`, `project`, `service` |
-| `docker_container_healthy`             | Whether a container is healthy (1) or not (0)| `id`, `name`, `project`, `service` |
-| `docker_container_uptime_milliseconds` | Uptime of the container in milliseconds      | `id`, `name`, `project`, `service` |
-| `docker_container_restart_count`       | Restart count of the container               | `id`, `name`, `project`, `service` |
+| Metric                                 | Description                                  | Labels                                          |
+| -------------------------------------- | -------------------------------------------- | ----------------------------------------------- |
+| `docker_container_info`                | Container metadata in tabular form            | `id`, `name`, `project`, `service`, `status`, `health` |
+| `docker_container_running`             | Whether a container is running (1) or not (0)| `id`, `name`, `project`, `service`              |
+| `docker_container_healthy`             | Whether a container is healthy (1) or not (0)| `id`, `name`, `project`, `service`              |
+| `docker_container_uptime_milliseconds` | Container start time in milliseconds since epoch | `id`, `name`, `project`, `service`           |
+| `docker_container_restart_count`       | Restart count of the container               | `id`, `name`, `project`, `service`              |
+
+**Note:** The `docker_container_healthy` metric is only exposed for containers that have a healthcheck configured. All metrics are reset on each collection cycle to ensure stale container data is removed.
 
 ## Usage
 

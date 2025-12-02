@@ -6,10 +6,12 @@ import {
   containerUptime,
   containerRestartCount,
   containerHealthy,
+  containerInfo,
 } from './metrics';
 
 export const collectMetrics = async () => {
   // 1. Reset all gauges to remove data from containers that no longer exist
+  containerInfo.reset();
   containerRunning.reset();
   containerUptime.reset();
   containerRestartCount.reset();
@@ -33,6 +35,12 @@ export const collectMetrics = async () => {
         service: container.Config.Labels['com.docker.compose.service'] || '',
       };
 
+      containerInfo.set({
+        ...labels,
+        status: container.State.Status,
+        health: container.State.Health?.Status || '',
+      }, 1);
+
       const running = container.State.Status === 'running';
       containerRunning.set(labels, running ? 1 : 0);
 
@@ -42,8 +50,10 @@ export const collectMetrics = async () => {
         containerHealthy.set(labels, healthy ? 1 : 0);
       }
 
-      const uptime = running ? new Date(container.State.StartedAt).getTime() : 0;
-      containerUptime.set(labels, uptime);
+      if (running) {
+        const uptime = new Date(container.State.StartedAt).getTime();
+        containerUptime.set(labels, uptime);
+      }
 
       containerRestartCount.set(labels, container.RestartCount);
     } catch (error) {

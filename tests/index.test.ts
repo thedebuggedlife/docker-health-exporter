@@ -39,6 +39,7 @@ const mockLabels = {
 
 // Use different functions, otherwise all inherit from the same Gauge mock
 [
+  metrics.containerInfo,
   metrics.containerRunning, 
   metrics.containerHealthy, 
   metrics.containerUptime, 
@@ -64,12 +65,18 @@ describe('collectMetrics', () => {
     await collectMetrics();
 
     // Metrics should be cleaned up every time they are collected
+    expect(metrics.containerInfo.reset).toHaveBeenCalled();
     expect(metrics.containerRunning.reset).toHaveBeenCalled();
     expect(metrics.containerHealthy.reset).toHaveBeenCalled();
     expect(metrics.containerUptime.reset).toHaveBeenCalled();
     expect(metrics.containerRestartCount.reset).toHaveBeenCalled();
 
     // Verify containerInfo metric
+    expect(metrics.containerInfo.set).toHaveBeenCalledWith({
+      ...mockLabels,
+      status: 'running',
+      health: 'healthy',
+    }, 1);
     expect(metrics.containerRunning.set).toHaveBeenCalledWith(mockLabels, 1);
     expect(metrics.containerHealthy.set).toHaveBeenCalledWith(mockLabels, 1);
     expect(metrics.containerUptime.set).toHaveBeenCalledWith(mockLabels, 1678881600000);
@@ -89,7 +96,7 @@ describe('collectMetrics', () => {
 
     // Verify containerInfo metric
     expect(metrics.containerRunning.set).toHaveBeenCalledWith(mockLabels, 0);
-    expect(metrics.containerUptime.set).toHaveBeenCalledWith(mockLabels, 0);
+    expect(metrics.containerUptime.set).toHaveBeenCalledTimes(0);
   });
 
   it('should report containers that are not healthy', async () => {
