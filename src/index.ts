@@ -9,31 +9,48 @@ import {
 } from './metrics';
 
 export const collectMetrics = async () => {
+  // 1. Reset all gauges to remove data from containers that no longer exist
+  containerRunning.reset();
+  containerUptime.reset();
+  containerRestartCount.reset();
+  containerHealthy.reset();
+
   const containers = await getContainers();
 
-  for (const containerData of containers) {
-    const container = await docker.getContainer(containerData.Id).inspect();
-    const id = containerData.Id;
-    const labels = {
-      id,
-      name: container.Name.substring(1),
-      project: container.Config.Labels['com.docker.compose.project'] || '',
-      service: container.Config.Labels['com.docker.compose.service'] || '',
+  // 2. Optimization: Use Promise.all to inspect containers in parallel
+  // This prevents the scrape from timing out if you have many containers.
+  await Promise.all(containers.map(async (containerData) => {
+    try {
+      // Note: inspect() might fail if the container is removed 
+      // between listContainers() and inspect()
+      const container = await docker.getContainer(containerData.Id).inspect();
+      
+      const id = containerData.Id;
+      const labels = {
+        id,
+        name: container.Name.substring(1), // Removes the leading '/'
+        project: container.Config.Labels['com.docker.compose.project'] || '',
+        service: container.Config.Labels['com.docker.compose.service'] || '',
+      };
+
+      const running = container.State.Status === 'running';
+      containerRunning.set(labels, running ? 1 : 0);
+
+      // Only set healthy metric if healthcheck is configured
+      if (container.State.Health?.Status) {
+        const healthy = container.State.Health?.Status === 'healthy';
+        containerHealthy.set(labels, healthy ? 1 : 0);
+      }
+
+      const uptime = running ? new Date(container.State.StartedAt).getTime() : 0;
+      containerUptime.set(labels, uptime);
+
+      containerRestartCount.set(labels, container.RestartCount);
+    } catch (error) {
+      // Handle race condition where container dies during scrape
+      console.warn(`Could not inspect container ${containerData.Id}:`, error);
     }
-
-    const running = container.State.Status === 'running';
-    containerRunning.set(labels, running ? 1 : 0);
-
-    if (container.State.Health?.Status) {
-      const healthy = container.State.Health?.Status === 'healthy';
-      containerHealthy.set(labels, healthy ? 1 : 0);;  
-    }
-
-    const uptime = running ? new Date(container.State.StartedAt).getTime() : 0;
-    containerUptime.set(labels, uptime);
-
-    containerRestartCount.set(labels, container.RestartCount);
-  }
+  }));
 };
 
 const server = http.createServer(async (req, res) => {

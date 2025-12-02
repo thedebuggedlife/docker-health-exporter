@@ -37,11 +37,16 @@ const mockLabels = {
   service: 'test-service',
 };
 
-// Use different set functions, otherwise all inherit from the same Gauge mock
-metrics.containerRunning.set = jest.fn();
-metrics.containerHealthy.set = jest.fn();
-metrics.containerUptime.set = jest.fn();
-metrics.containerRestartCount.set = jest.fn();
+// Use different functions, otherwise all inherit from the same Gauge mock
+[
+  metrics.containerRunning, 
+  metrics.containerHealthy, 
+  metrics.containerUptime, 
+  metrics.containerRestartCount
+].forEach(g => {
+  g.set = jest.fn();
+  g.reset = jest.fn();
+});
 
 describe('collectMetrics', () => {
   beforeEach(() => {
@@ -57,6 +62,12 @@ describe('collectMetrics', () => {
     });
 
     await collectMetrics();
+
+    // Metrics should be cleaned up every time they are collected
+    expect(metrics.containerRunning.reset).toHaveBeenCalled();
+    expect(metrics.containerHealthy.reset).toHaveBeenCalled();
+    expect(metrics.containerUptime.reset).toHaveBeenCalled();
+    expect(metrics.containerRestartCount.reset).toHaveBeenCalled();
 
     // Verify containerInfo metric
     expect(metrics.containerRunning.set).toHaveBeenCalledWith(mockLabels, 1);
